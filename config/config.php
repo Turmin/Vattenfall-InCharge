@@ -41,6 +41,7 @@ return [
     'admin' => [
         'credentials_file' => $webRoot . '/incharge.admin.credentials.php',
         'legacy_credentials_file' => $rootDir . '/admin/admin_credentials.php',
+        'login_attempts_file' => $webRoot . '/incharge.admin.login-attempts.json',
     ],
 
     'cron' => [
@@ -65,6 +66,8 @@ return [
             'longitude' => 5.291266,
         ],
         'page_size' => 40,
-        'session_cache_file' => $rootDir . '/var/incharge-session.json',
+        // Kept outside the web root, next to the credential files.
+        'session_cache_file' => $webRoot . '/incharge.session.json',
+        'legacy_session_cache_file' => $rootDir . '/var/incharge-session.json',
     ],
 ];

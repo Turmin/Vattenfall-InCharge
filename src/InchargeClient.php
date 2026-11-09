@@ -419,6 +419,7 @@ final class InChargeClient
 
     private function loadSession()
     {
+        $this->removeLegacySessionCache();
         $file = $this->sessionCacheFile();
 
         if (!is_file($file)) {
@@ -460,6 +461,19 @@ final class InChargeClient
 
         if (is_file($file)) {
             unlink($file);
+        }
+    }
+
+    /**
+     * The session cache used to live in var/ inside the web root, where it
+     * could be downloaded. Remove any copy that is still there.
+     */
+    private function removeLegacySessionCache()
+    {
+        $legacyFile = (string)($this->config['incharge']['legacy_session_cache_file'] ?? '');
+
+        if ($legacyFile !== '' && $legacyFile !== $this->sessionCacheFile() && is_file($legacyFile)) {
+            @unlink($legacyFile);
         }
     }
 

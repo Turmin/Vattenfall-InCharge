@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+$adminIsHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'secure' => $adminIsHttps,
+    'httponly' => true,
+    'samesite' => 'Strict',
+]);
 session_start();
 
 $config = require __DIR__ . '/../config/config.php';
@@ -206,10 +215,20 @@ if (($_POST['action'] ?? '') === 'logout') {
 if (!$setupRequired && ($_POST['action'] ?? '') === 'login') {
     requireValidCsrf();
 
+    require_once __DIR__ . '/../src/LoginThrottle.php';
+    $loginThrottle = new LoginThrottle((string)$config['admin']['login_attempts_file']);
+    $loginIp = (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    $loginWait = $loginThrottle->secondsUntilAllowed($loginIp);
+
+    if ($loginWait > 0) {
+        redirectAdmin(['type' => 'danger', 'messages' => ['Te veel mislukte inlogpogingen. Probeer het over ' . (int)ceil($loginWait / 60) . ' minuten opnieuw.']]);
+    }
+
     $username = trim((string)($_POST['username'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
 
     if ($username === $credentials['username'] && password_verify($password, $credentials['password_hash'])) {
+        $loginThrottle->clear($loginIp);
         session_regenerate_id(true);
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_user'] = $credentials['username'];
@@ -217,6 +236,7 @@ if (!$setupRequired && ($_POST['action'] ?? '') === 'login') {
         redirectAdmin(['type' => 'success', 'messages' => ['Ingelogd.']]);
     }
 
+    $loginThrottle->recordFailure($loginIp);
     redirectAdmin(['type' => 'danger', 'messages' => ['Ongeldige gebruikersnaam of wachtwoord.']]);
 }
 
