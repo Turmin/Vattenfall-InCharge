@@ -1,0 +1,11 @@
+RewriteEngine On
+
+# Rewrite rules here replace those of a parent .htaccess, so keep HTTPS enforced.
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L,NE]
+
+# Admin is only reachable from one IP address. The deploy workflow replaces
+# the placeholder with the value of the ADMIN_ALLOWED_IP secret.
+RewriteCond %{REMOTE_ADDR} !^__ADMIN_ALLOWED_IP__$
+RewriteRule ^ - [F,L]

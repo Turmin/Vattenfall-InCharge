@@ -54,6 +54,20 @@ jobs:
             --exclude='*' \
             ./ .deploy/
 
+      - name: Write admin IP restriction
+        env:
+          ADMIN_ALLOWED_IP: ${{ secrets.ADMIN_ALLOWED_IP }}
+        run: |
+          if ! [[ "$ADMIN_ALLOWED_IP" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            echo "Set the ADMIN_ALLOWED_IP secret to the IPv4 address that may open /admin." >&2
+            exit 1
+          fi
+          sed -i "s/__ADMIN_ALLOWED_IP__/${ADMIN_ALLOWED_IP//./\\\\.}/" ".deploy/admin/.htaccess"
+          if grep -q '__ADMIN_ALLOWED_IP__' ".deploy/admin/.htaccess"; then
+            echo "Could not write the admin IP restriction." >&2
+            exit 1
+          fi
+
       - name: Deploy via FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
